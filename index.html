@@ -1602,45 +1602,71 @@
         }
 
         // Main form submission handler
+       // Main form submission handler - REPLACE THIS FUNCTION
         async function handleFormSubmission(formData) {
-  try {
-    const params = new URLSearchParams(formData);
+        try {
+            console.log('Submitting form data:', formData);
+            
+            // Create URL parameters
+            const params = new URLSearchParams();
+            Object.keys(formData).forEach(key => {
+            if (formData[key] && formData[key].trim() !== '') {
+                params.append(key, formData[key].trim());
+            }
+            });
 
-    // 👇 GET request with params
-    const response = await fetch(WEB_APP_URL + "?" + params.toString(), {
-      method: "GET"
-    });
+            const fullURL = `${WEB_APP_URL}?${params.toString()}`;
+            console.log('Full URL:', fullURL);
 
-    // 👇 Parse JSON returned by Apps Script
-    const result = await response.json();
+            const response = await fetch(fullURL, {
+            method: "GET",
+            mode: 'cors'
+            });
 
-    if (result.success) {
-      const successMessage = document.getElementById('successMessage');
-      successMessage.innerHTML = `
-        <i class="fas fa-check-circle"></i> 
-        Thank you, ${formData.name}! Your message has been submitted successfully.
-      `;
-      successMessage.classList.add('show');
+            console.log('Response status:', response.status);
 
-      // Reset form
-      document.getElementById('contactForm').reset();
+            if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+            }
 
-      setTimeout(() => {
-        successMessage.classList.remove('show');
-      }, 8000);
+            const responseText = await response.text();
+            console.log('Raw response:', responseText);
+            
+            let result;
+            try {
+            result = JSON.parse(responseText);
+            } catch (parseError) {
+            console.error('JSON parse error:', parseError);
+            console.error('Response was:', responseText);
+            throw new Error('Invalid server response');
+            }
 
-      return true;
-    } else {
-      showErrorMessage(result.message || "There was an error submitting your message.");
-      return false;
-    }
-  } catch (error) {
-    console.error("Form submission error:", error);
-    showErrorMessage("Network error. Please try again.");
-    return false;
-  }
-}
+            if (result.success) {
+            const successMessage = document.getElementById('successMessage');
+            successMessage.innerHTML = `
+                <i class="fas fa-check-circle"></i> 
+                Thank you, ${formData.name}! Your message has been submitted successfully.
+            `;
+            successMessage.classList.add('show');
 
+            // Reset form
+            document.getElementById('contactForm').reset();
+
+            setTimeout(() => {
+                successMessage.classList.remove('show');
+            }, 8000);
+
+            return true;
+            } else {
+            showErrorMessage(result.message || "There was an error submitting your message.");
+            return false;
+            }
+        } catch (error) {
+            console.error("Form submission error:", error);
+            showErrorMessage(`Network error: ${error.message}. Please try again.`);
+            return false;
+        }
+        }
 
 
         // Initialize when page loads
